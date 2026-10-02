@@ -69,22 +69,8 @@ const Navbar = () => {
             : 'Light';
 
     useEffect(() => {
-        const handleScroll = () => {
-            setIsScrolled(window.scrollY > 50);
-        };
-        window.addEventListener('scroll', handleScroll);
-        return () => window.removeEventListener('scroll', handleScroll);
-    }, []);
-
-    useEffect(() => {
-        const nextResolved =
-            themePreference === 'system' ? getSystemTheme() : themePreference;
-        // Sync resolved theme when preference changes (not a subscription)
-        // eslint-disable-next-line react-hooks/set-state-in-effect -- theme preference drives resolved theme
-        setResolvedTheme(nextResolved);
-        document.documentElement.setAttribute('data-theme', nextResolved);
-        localStorage.setItem(THEME_STORAGE_KEY, themePreference);
-    }, [themePreference]);
+        document.documentElement.setAttribute('data-theme', resolvedTheme);
+    }, [resolvedTheme]);
 
     useEffect(() => {
         if (themePreference !== 'system' || !window.matchMedia) {
@@ -108,86 +94,98 @@ const Navbar = () => {
 
     useEffect(() => {
         let rafId = 0;
-        const sectionOffsets = new Map();
-
-        const cacheOffsets = () => {
-            navLinks.forEach((link) => {
-                const element = document.querySelector(link.href);
-                if (element) {
-                    sectionOffsets.set(link.href.replace('#', ''), element.offsetTop);
-                }
-            });
-        };
-
-        const getNavOffset = () => {
-            const nav = document.querySelector('.navbar');
-            return (nav ? nav.offsetHeight : 80) + 8;
-        };
+        const sectionIds = navLinks.map((l) => l.href.replace('#', ''));
 
         const updateActive = () => {
-            if (sectionOffsets.size === 0) return;
+            const scrollY = window.scrollY || document.documentElement.scrollTop;
+            setIsScrolled(scrollY > 50);
 
-            const offset = getNavOffset();
-            const scrollTop = window.scrollY || document.documentElement.scrollTop;
-            const scrollPosition = scrollTop + offset;
+            // Active section threshold: 220px below top of viewport
+            const scrollPosition = scrollY + 220;
+            let current = sectionIds[0];
 
-            let current = navLinks[0].href.replace('#', '');
-            
-            navLinks.forEach((link) => {
-                const id = link.href.replace('#', '');
-                const sectionOffset = sectionOffsets.get(id);
-                if (sectionOffset !== undefined && scrollPosition >= sectionOffset) {
+            for (let i = 0; i < sectionIds.length; i++) {
+                const id = sectionIds[i];
+                const el = document.getElementById(id);
+                if (el && scrollPosition >= el.offsetTop) {
                     current = id;
                 }
-            });
-
-            const pageBottom = window.innerHeight + scrollTop;
-            const docHeight = document.documentElement.scrollHeight;
-            if (pageBottom >= docHeight - 2) {
-                current = navLinks[navLinks.length - 1].href.replace('#', '');
             }
 
-            setActiveSection(current);
+            // Snap to contact if at bottom of page
+            const docHeight = document.documentElement.scrollHeight;
+            const winHeight = window.innerHeight;
+            if (winHeight + scrollY >= docHeight - 40) {
+                current = sectionIds[sectionIds.length - 1];
+            }
+
+            setActiveSection((prev) => (prev !== current ? current : prev));
         };
 
-        const handleScroll = () => {
+        const onScroll = () => {
             if (rafId) return;
-            rafId = window.requestAnimationFrame(() => {
+            rafId = requestAnimationFrame(() => {
                 rafId = 0;
                 updateActive();
             });
         };
 
-        const handleResize = () => {
-            cacheOffsets();
-            handleScroll();
-        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        window.addEventListener('resize', onScroll, { passive: true });
 
-        cacheOffsets();
+        // Subscribe to Lenis scroll if available
+        if (window.__lenis) {
+            window.__lenis.on('scroll', onScroll);
+        }
+
+        // Initial check and retries for lazy-loaded sections
         updateActive();
-        window.addEventListener('scroll', handleScroll, { passive: true });
-        window.addEventListener('resize', handleResize, { passive: true });
-        window.addEventListener('load', handleResize, { passive: true });
+        const t1 = setTimeout(updateActive, 150);
+        const t2 = setTimeout(updateActive, 600);
+        const t3 = setTimeout(updateActive, 1200);
 
         return () => {
-            if (rafId) window.cancelAnimationFrame(rafId);
-            window.removeEventListener('scroll', handleScroll);
-            window.removeEventListener('resize', handleResize);
-            window.removeEventListener('load', handleResize);
+            if (rafId) cancelAnimationFrame(rafId);
+            window.removeEventListener('scroll', onScroll);
+            window.removeEventListener('resize', onScroll);
+            if (window.__lenis) {
+                window.__lenis.off('scroll', onScroll);
+            }
+            clearTimeout(t1);
+            clearTimeout(t2);
+            clearTimeout(t3);
         };
     }, []);
+
+    const handleNavClick = (e, href) => {
+        if (href.startsWith('#')) {
+            const target = document.querySelector(href);
+            if (target) {
+                e.preventDefault();
+                if (window.__lenis) {
+                    window.__lenis.scrollTo(target, { offset: -70 });
+                } else {
+                    target.scrollIntoView({ behavior: 'smooth' });
+                }
+            }
+        }
+    };
 
     const toggleTheme = () => {
         const order = ['dark', 'light', 'system'];
         const currentIndex = order.indexOf(themePreference);
         const nextTheme = order[(currentIndex + 1) % order.length];
+        const nextResolved = nextTheme === 'system' ? getSystemTheme() : nextTheme;
         setThemePreference(nextTheme);
+        setResolvedTheme(nextResolved);
+        document.documentElement.setAttribute('data-theme', nextResolved);
+        localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
     };
 
     return (
         <nav className={`navbar ${isScrolled ? 'scrolled' : ''}`}>
             <div className="container nav-container">
-                <a href="#home" className="nav-logo text-gradient">
+                <a href="#home" onClick={(e) => handleNavClick(e, '#home')} className="nav-logo text-gradient">
                     SatyaTeja
                 </a>
 
@@ -199,18 +197,13 @@ const Navbar = () => {
                             <motion.a
                                 key={link.name}
                                 href={link.href}
+                                onClick={(e) => handleNavClick(e, link.href)}
                                 className={`nav-link ${isActive ? 'active' : ''}`}
                                 aria-current={isActive ? 'page' : undefined}
-                                whileHover={{ scale: 1.1 }}
+                                whileHover={{ scale: 1.08 }}
                                 whileTap={{ scale: 0.95 }}
                             >
                                 {link.name}
-                                <motion.span
-                                    className="absolute bottom-0 left-0 w-full h-0.5 bg-[var(--primary)] origin-left"
-                                    initial={{ scaleX: 0 }}
-                                    whileHover={{ scaleX: 1 }}
-                                    transition={{ duration: 0.3 }}
-                                />
                             </motion.a>
                         );
                     })}

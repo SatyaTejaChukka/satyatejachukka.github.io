@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import LazyImage from './LazyImage';
-import profileImg from '../assets/profile.png';
+import profileImg from '../assets/profile.webp';
 import { hapticLight } from '../utils/mobile';
 
 const skillCategories = [
@@ -136,24 +136,18 @@ const About = () => {
                                 <motion.div
                                     key={category.title}
                                     className="skill-category"
-                                    initial={{ opacity: 0, y: 20 }}
+                                    initial={{ opacity: 0, y: 16 }}
                                     animate={inView ? { opacity: 1, y: 0 } : {}}
-                                    transition={{ duration: 0.5, delay: catIdx * 0.08 }}
+                                    transition={{ duration: 0.4, delay: catIdx * 0.05 }}
                                 >
                                     <h4 className="skill-category-title">{category.title}</h4>
                                     <div className="skill-icons-row">
-                                        {category.skills.map((skill, idx) => (
+                                        {category.skills.map((skill) => (
                                             <motion.div
                                                 key={skill.name}
                                                 className={`skill-icon-chip ${activeSkill === skill.name ? 'skill-icon-chip--active' : ''}`}
-                                                initial={{ opacity: 0, scale: 0.7 }}
-                                                animate={inView ? { opacity: 1, scale: 1 } : {}}
-                                                transition={{
-                                                    duration: 0.3,
-                                                    delay: catIdx * 0.08 + idx * 0.04,
-                                                }}
-                                                whileHover={{ y: -4, scale: 1.08 }}
-                                                whileTap={{ scale: 0.92, y: -2 }}
+                                                whileHover={{ y: -3, scale: 1.05 }}
+                                                whileTap={{ scale: 0.94 }}
                                                 onTap={() => {
                                                     setActiveSkill(skill.name);
                                                     hapticLight();

@@ -23,17 +23,14 @@ const gridVariants = {
 const cardVariantsDesktop = {
   hidden: {
     opacity: 0,
-    y: 30,
-    scale: 0.95,
+    y: 20,
   },
   visible: {
     opacity: 1,
     y: 0,
-    scale: 1,
     transition: {
-      type: 'spring',
-      stiffness: 120,
-      damping: 14,
+      duration: 0.4,
+      ease: [0.16, 1, 0.3, 1],
     },
   },
 };
@@ -42,17 +39,14 @@ const cardVariantsDesktop = {
 const cardVariantsMobile = {
   hidden: {
     opacity: 0,
-    y: 16,
-    scale: 0.97,
+    y: 12,
   },
   visible: {
     opacity: 1,
     y: 0,
-    scale: 1,
     transition: {
-      type: 'spring',
-      stiffness: 140,
-      damping: 16,
+      duration: 0.35,
+      ease: 'easeOut',
     },
   },
 };

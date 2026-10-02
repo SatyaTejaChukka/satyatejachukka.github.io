@@ -47,18 +47,12 @@ const SpotlightCard = ({
     fadeTimerRef.current = window.setTimeout(clearSpotlight, 320);
   }, [clearSpotlight]);
 
-  const rectRef = useRef(null);
-
   const updateFromClient = useCallback(
     (clientX, clientY) => {
       const card = cardRef.current;
       if (!card) return;
 
-      if (!rectRef.current) {
-        rectRef.current = card.getBoundingClientRect();
-      }
-      
-      const rect = rectRef.current;
+      const rect = card.getBoundingClientRect();
       setSpotlight(clientX - rect.left, clientY - rect.top);
     },
     [setSpotlight]
@@ -71,14 +65,14 @@ const SpotlightCard = ({
     [updateFromClient]
   );
 
-  const handleMouseEnter = useCallback(() => {
-    if (cardRef.current) {
-      rectRef.current = cardRef.current.getBoundingClientRect();
-    }
-  }, []);
+  const handleMouseEnter = useCallback(
+    (e) => {
+      updateFromClient(e.clientX, e.clientY);
+    },
+    [updateFromClient]
+  );
 
   const handleMouseLeave = useCallback(() => {
-    rectRef.current = null;
     clearSpotlight();
   }, [clearSpotlight]);
 
@@ -86,9 +80,6 @@ const SpotlightCard = ({
     (e) => {
       const touch = e.touches[0];
       if (!touch) return;
-      if (cardRef.current) {
-        rectRef.current = cardRef.current.getBoundingClientRect();
-      }
       updateFromClient(touch.clientX, touch.clientY);
     },
     [updateFromClient]
@@ -104,7 +95,6 @@ const SpotlightCard = ({
   );
 
   const handleTouchEnd = useCallback(() => {
-    rectRef.current = null;
     scheduleFade();
   }, [scheduleFade]);
 

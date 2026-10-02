@@ -1,7 +1,6 @@
 import React, { useState, useRef } from 'react';
 import {
   motion,
-  useReducedMotion,
   useScroll,
   useTransform,
   useSpring,
@@ -79,18 +78,16 @@ const containerVariants = {
 const itemVariants = {
   hidden: (direction) => ({
     opacity: 0,
-    y: 40,
-    x: direction > 0 ? 60 : -60,
-    rotate: direction > 0 ? 2 : -2,
+    y: 30,
+    x: direction > 0 ? 30 : -30,
     scale: 0.98,
   }),
   visible: {
     opacity: 1,
     y: 0,
     x: 0,
-    rotate: 0,
     scale: 1,
-    transition: { duration: 0.6, ease: 'easeOut' },
+    transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] },
   },
 };
 
@@ -98,32 +95,31 @@ const dotVariants = {
   hidden: { scale: 0 },
   visible: {
     scale: 1,
-    transition: { type: 'spring', stiffness: 200 },
+    transition: { type: 'spring', stiffness: 260, damping: 20 },
   },
   active: {
     scale: 1.15,
-    boxShadow: '0 0 30px rgba(0, 243, 255, 0.6)',
+    boxShadow: '0 0 25px rgba(0, 243, 255, 0.6)',
   },
   hover: {
-    scale: 1.3,
+    scale: 1.25,
     boxShadow: '0 0 20px rgba(0, 243, 255, 0.6)',
   },
 };
 
 const cardVariants = {
   hidden: {
-    opacity: 0.75,
-    filter: 'blur(6px)',
+    opacity: 0,
+    y: 15,
   },
   visible: {
     opacity: 1,
-    filter: 'blur(0px)',
-    transition: { duration: 0.6, ease: 'easeOut' },
+    y: 0,
+    transition: { duration: 0.45, ease: 'easeOut' },
   },
   hover: {
-    boxShadow: '0 18px 50px rgba(0, 243, 255, 0.25)',
+    boxShadow: '0 16px 40px rgba(0, 243, 255, 0.2)',
   },
-
 };
 
 /* ------------------ Timeline Item ------------------ */
@@ -132,42 +128,21 @@ const TimelineItem = ({
   exp,
   index,
   isActive,
-  onEnter,
   hoveredId,
   setHoveredId,
-  reduceMotion,
 }) => {
-  const itemRef = useRef(null);
-
-  const { scrollYProgress } = useScroll({
-    target: itemRef,
-    offset: ['0.9 1', '0.2 0'],
-  });
-
   const isRight = index % 2 !== 0;
   const direction = isRight ? 1 : -1;
 
-  const parallaxX = useSpring(
-    useTransform(scrollYProgress, [0, 1], isRight ? [12, -8] : [-12, 8]),
-    { stiffness: 120, damping: 22 }
-  );
-
-  const parallaxY = useSpring(
-    useTransform(scrollYProgress, [0, 1], [14, -14]),
-    { stiffness: 120, damping: 22 }
-  );
-
   return (
     <motion.article
-      ref={itemRef}
       className="timeline-item"
       variants={itemVariants}
       custom={direction}
       style={{ flexDirection: isRight ? 'row' : 'row-reverse' }}
-      onViewportEnter={() => onEnter(exp.id)}
       onHoverStart={() => setHoveredId(exp.id)}
       onHoverEnd={() => setHoveredId(null)}
-      viewport={{ amount: 0.55 }}
+      viewport={{ once: true, amount: 0.3 }}
     >
       {/* Dot */}
       <motion.div
@@ -184,13 +159,7 @@ const TimelineItem = ({
       <div style={{ flex: 1 }} />
 
       {/* Card */}
-      <motion.div
-        className="timeline-content"
-        style={{
-          x: reduceMotion ? 0 : parallaxX,
-          y: reduceMotion ? 0 : parallaxY,
-        }}
-      >
+      <motion.div className="timeline-content">
         <SpotlightCard color="rgba(189, 0, 255, 0.12)" className="timeline-card-spotlight">
           <motion.div
             className="glass-panel p-6 rounded-xl timeline-card"
@@ -199,7 +168,7 @@ const TimelineItem = ({
             whileInView="visible"
             whileHover="hover"
             whileTap={{ scale: 0.98 }}
-            viewport={{ amount: 0.55 }}
+            viewport={{ once: true, amount: 0.3 }}
           >
             <div className="timeline-card-header">
               <div className="timeline-company">
@@ -216,7 +185,6 @@ const TimelineItem = ({
             <div className="timeline-description modern-text">{exp.description}</div>
           </motion.div>
         </SpotlightCard>
-
       </motion.div>
     </motion.article>
   );
@@ -225,10 +193,9 @@ const TimelineItem = ({
 /* ------------------ Main Component ------------------ */
 
 const Experience = () => {
-  const reduceMotion = useReducedMotion();
   const timelineRef = useRef(null);
   const [hoveredId, setHoveredId] = useState(null);
-  const [activeId, setActiveId] = useState(experiences[0]?.id ?? null);
+  const activeId = experiences[0]?.id ?? null;
 
   /* ✅ Scroll-linked timeline line */
   const { scrollYProgress } = useScroll({
@@ -284,8 +251,6 @@ const Experience = () => {
               hoveredId={hoveredId}
               setHoveredId={setHoveredId}
               isActive={activeId === exp.id}
-              onEnter={setActiveId}
-              reduceMotion={reduceMotion}
             />
           ))}
         </motion.div>

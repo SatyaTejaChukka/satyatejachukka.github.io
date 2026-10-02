@@ -1,103 +1,133 @@
-import React, { useEffect, useState } from 'react';
-import { motion, useMotionValue, useSpring } from 'framer-motion';
+import React, { useEffect, useRef } from 'react';
 
-const SPRING_DOT  = { stiffness: 2000, damping: 60, mass: 0.2 };
-const SPRING_RING = { stiffness: 180,  damping: 22, mass: 0.6 };
-
+/**
+ * High-Performance Hardware-Accelerated Custom Cursor
+ * - Operates entirely outside the React render cycle (zero re-renders on mousemove).
+ * - Dot follows pointer instantaneously with translate3d.
+ * - Follower ring uses requestAnimationFrame linear interpolation (lerp = 0.20)
+ *   for a buttery, fluid glide with zero sluggishness or rubber-banding.
+ * - Hover scaling uses pure GPU transforms (scale) instead of layout-triggering width/height.
+ */
 const Cursor = () => {
-  const [visible, setVisible]   = useState(false);
-  const [hovering, setHovering] = useState(false);
-  const [isTouchDevice] = useState(() =>
-    typeof window !== 'undefined' &&
-    window.matchMedia('(pointer: coarse)').matches
-  );
-
-  // Raw mouse position (dot follows instantly via spring with high stiffness)
-  const rawX = useMotionValue(-200);
-  const rawY = useMotionValue(-200);
-
-  // Dot: very tight spring — almost instant
-  const dotX = useSpring(rawX, SPRING_DOT);
-  const dotY = useSpring(rawY, SPRING_DOT);
-
-  // Ring: slow spring — creates the lag effect
-  const ringX = useSpring(rawX, SPRING_RING);
-  const ringY = useSpring(rawY, SPRING_RING);
-
-  const ringSize = hovering ? 52 : 32;
-  const ringOpacity = hovering ? 0.9 : 0.55;
+  const dotRef = useRef(null);
+  const ringRef = useRef(null);
 
   useEffect(() => {
-    if (isTouchDevice) return;
+    // Disable on mobile/touch devices
+    if (typeof window === 'undefined' || window.matchMedia('(pointer: coarse)').matches) {
+      return undefined;
+    }
 
-    const onMove = (e) => {
-      rawX.set(e.clientX);
-      rawY.set(e.clientY);
-      if (!visible) setVisible(true);
+    const dot = dotRef.current;
+    const ring = ringRef.current;
+    if (!dot || !ring) return undefined;
+
+    let rafId = 0;
+    let isVisible = false;
+    let isHovering = false;
+
+    // Mouse coordinates (target)
+    let mouseX = -100;
+    let mouseY = -100;
+
+    // Follower ring coordinates (current interpolated)
+    let ringX = -100;
+    let ringY = -100;
+
+    // Fluid lerp factor: 0.20 gives a responsive, premium fluid glide
+    const LERP_FACTOR = 0.20;
+
+    const render = () => {
+      if (isVisible) {
+        // Linear interpolation for silky smooth following
+        ringX += (mouseX - ringX) * LERP_FACTOR;
+        ringY += (mouseY - ringY) * LERP_FACTOR;
+
+        // Direct hardware-accelerated transform writes (zero reflow, compositor only)
+        dot.style.transform = `translate3d(${mouseX}px, ${mouseY}px, 0) translate(-50%, -50%)`;
+        ring.style.transform = `translate3d(${ringX}px, ${ringY}px, 0) translate(-50%, -50%) scale(${isHovering ? 1.45 : 1})`;
+      }
+
+      rafId = requestAnimationFrame(render);
     };
 
-    const onEnter = () => setVisible(true);
-    const onLeave = () => setVisible(false);
+    const onMouseMove = (e) => {
+      mouseX = e.clientX;
+      mouseY = e.clientY;
 
-    const onElementEnter = (e) => {
-      if (e.target.closest('a, button, [role="button"], input, textarea, select, label')) {
-        setHovering(true);
+      if (!isVisible) {
+        isVisible = true;
+        ringX = mouseX;
+        ringY = mouseY;
+        dot.style.opacity = '1';
+        ring.style.opacity = '0.7';
       }
     };
-    const onElementLeave = (e) => {
-      if (e.target.closest('a, button, [role="button"], input, textarea, select, label')) {
-        setHovering(false);
+
+    const onMouseEnter = () => {
+      isVisible = true;
+      dot.style.opacity = '1';
+      ring.style.opacity = '0.7';
+    };
+
+    const onMouseLeave = () => {
+      isVisible = false;
+      dot.style.opacity = '0';
+      ring.style.opacity = '0';
+    };
+
+    const onMouseOver = (e) => {
+      const target = e.target;
+      if (
+        target &&
+        target.closest('a, button, [role="button"], input, textarea, select, label, .project-card, .timeline-card')
+      ) {
+        if (!isHovering) {
+          isHovering = true;
+          ring.classList.add('cursor-ring--hover');
+          dot.classList.add('cursor-dot--hover');
+        }
       }
     };
 
-    window.addEventListener('mousemove', onMove, { passive: true });
-    document.documentElement.addEventListener('mouseenter', onEnter);
-    document.documentElement.addEventListener('mouseleave', onLeave);
-    document.addEventListener('mouseover', onElementEnter);
-    document.addEventListener('mouseout', onElementLeave);
+    const onMouseOut = (e) => {
+      const target = e.target;
+      if (
+        target &&
+        target.closest('a, button, [role="button"], input, textarea, select, label, .project-card, .timeline-card')
+      ) {
+        const related = e.relatedTarget;
+        if (!related || !related.closest('a, button, [role="button"], input, textarea, select, label, .project-card, .timeline-card')) {
+          isHovering = false;
+          ring.classList.remove('cursor-ring--hover');
+          dot.classList.remove('cursor-dot--hover');
+        }
+      }
+    };
+
+    window.addEventListener('mousemove', onMouseMove, { passive: true });
+    document.documentElement.addEventListener('mouseenter', onMouseEnter, { passive: true });
+    document.documentElement.addEventListener('mouseleave', onMouseLeave, { passive: true });
+    document.addEventListener('mouseover', onMouseOver, { passive: true });
+    document.addEventListener('mouseout', onMouseOut, { passive: true });
+
+    // Start RAF loop
+    rafId = requestAnimationFrame(render);
 
     return () => {
-      window.removeEventListener('mousemove', onMove);
-      document.documentElement.removeEventListener('mouseenter', onEnter);
-      document.documentElement.removeEventListener('mouseleave', onLeave);
-      document.removeEventListener('mouseover', onElementEnter);
-      document.removeEventListener('mouseout', onElementLeave);
+      cancelAnimationFrame(rafId);
+      window.removeEventListener('mousemove', onMouseMove);
+      document.documentElement.removeEventListener('mouseenter', onMouseEnter);
+      document.documentElement.removeEventListener('mouseleave', onMouseLeave);
+      document.removeEventListener('mouseover', onMouseOver);
+      document.removeEventListener('mouseout', onMouseOut);
     };
-  }, [isTouchDevice, visible, rawX, rawY]);
-
-  if (isTouchDevice) return null;
+  }, []);
 
   return (
     <>
-      {/* Outer lagging ring */}
-      <motion.div
-        className="cursor-ring"
-        style={{
-          x: ringX,
-          y: ringY,
-          width: ringSize,
-          height: ringSize,
-          opacity: visible ? ringOpacity : 0,
-          translateX: '-50%',
-          translateY: '-50%',
-          scale: hovering ? 1.3 : 1,
-        }}
-        transition={{ scale: { type: 'spring', stiffness: 200, damping: 20 } }}
-      />
-
-      {/* Inner precision dot */}
-      <motion.div
-        className="cursor-dot"
-        style={{
-          x: dotX,
-          y: dotY,
-          opacity: visible ? 1 : 0,
-          translateX: '-50%',
-          translateY: '-50%',
-          scale: hovering ? 0 : 1,
-        }}
-        transition={{ scale: { duration: 0.15 } }}
-      />
+      <div ref={ringRef} className="cursor-ring" aria-hidden="true" />
+      <div ref={dotRef} className="cursor-dot" aria-hidden="true" />
     </>
   );
 };

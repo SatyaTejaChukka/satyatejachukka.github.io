@@ -20,46 +20,76 @@ const MobileSectionNav = () => {
     if (!isMobile) return undefined;
 
     let rafId = 0;
+    const sectionIds = sections.map((s) => s.id);
 
     const updateActive = () => {
-      const scrollTop = window.scrollY || document.documentElement.scrollTop;
-      const navOffset = 90;
-      const scrollPosition = scrollTop + navOffset;
-      let current = sections[0]?.id ?? 'home';
+      const scrollY = window.scrollY || document.documentElement.scrollTop;
+      const scrollPosition = scrollY + 160;
+      let current = sectionIds[0];
 
-      sections.forEach((section) => {
-        const element = document.getElementById(section.id);
-        if (element && scrollPosition >= element.offsetTop) {
-          current = section.id;
+      for (let i = 0; i < sectionIds.length; i++) {
+        const id = sectionIds[i];
+        const el = document.getElementById(id);
+        if (el && scrollPosition >= el.offsetTop) {
+          current = id;
         }
-      });
+      }
 
-      setActiveSection(current);
+      const docHeight = document.documentElement.scrollHeight;
+      const winHeight = window.innerHeight;
+      if (winHeight + scrollY >= docHeight - 40) {
+        current = sectionIds[sectionIds.length - 1];
+      }
+
+      setActiveSection((prev) => (prev !== current ? current : prev));
     };
 
     const onScroll = () => {
       if (rafId) return;
-      rafId = window.requestAnimationFrame(() => {
+      rafId = requestAnimationFrame(() => {
         rafId = 0;
         updateActive();
       });
     };
 
-    updateActive();
     window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll);
+    window.addEventListener('resize', onScroll, { passive: true });
+
+    if (window.__lenis) {
+      window.__lenis.on('scroll', onScroll);
+    }
+
+    updateActive();
+    const t1 = setTimeout(updateActive, 150);
+    const t2 = setTimeout(updateActive, 600);
+    const t3 = setTimeout(updateActive, 1200);
 
     return () => {
-      if (rafId) window.cancelAnimationFrame(rafId);
+      if (rafId) cancelAnimationFrame(rafId);
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', onScroll);
+      if (window.__lenis) {
+        window.__lenis.off('scroll', onScroll);
+      }
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
     };
   }, [isMobile]);
 
   if (!isMobile) return null;
 
-  const handleNavClick = () => {
+  const handleNavClick = (e, sectionId) => {
     hapticLight();
+    const target = document.getElementById(sectionId);
+    if (target) {
+      e.preventDefault();
+      if (window.__lenis) {
+        window.__lenis.scrollTo(target, { offset: -20 });
+      } else {
+        target.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
   };
 
   return (
@@ -75,7 +105,7 @@ const MobileSectionNav = () => {
               className={`mobile-section-nav-item ${isActive ? 'active' : ''}`}
               aria-label={`Jump to ${section.label}`}
               aria-current={isActive ? 'page' : undefined}
-              onClick={handleNavClick}
+              onClick={(e) => handleNavClick(e, section.id)}
             >
               {isActive && (
                 <motion.span
