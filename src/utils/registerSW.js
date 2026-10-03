@@ -4,6 +4,32 @@
  */
 
 export const registerServiceWorker = async () => {
+  // Never run or register Service Worker in dev mode to prevent stale bundle caching!
+  if (import.meta.env.DEV) {
+    if ('serviceWorker' in navigator) {
+      try {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const reg of registrations) {
+          await reg.unregister();
+        }
+      } catch (e) {
+        console.warn('[SW] Could not unregister SW in dev:', e);
+      }
+    }
+    if ('caches' in window) {
+      try {
+        const keys = await caches.keys();
+        for (const key of keys) {
+          await caches.delete(key);
+        }
+      } catch (e) {
+        console.warn('[SW] Could not clear caches in dev:', e);
+      }
+    }
+    console.log('[SW] Dev mode: Service Worker and caches disabled');
+    return null;
+  }
+
   if (!('serviceWorker' in navigator)) {
     console.log('[SW] Service workers not supported');
     return null;
