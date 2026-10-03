@@ -8,12 +8,15 @@ import {
   requestDeviceOrientation,
 } from '../utils/mobile';
 
+import NeuralCanvas from './NeuralCanvas';
+
 const Hero = () => {
   const name = 'Satya Teja Chukka';
   const letters = name.split('');
   const [isWaving, setIsWaving] = useState(false);
   const [tiltEnabled, setTiltEnabled] = useState(false);
   const touchStartY = useRef(0);
+  const neuralCanvasRef = useRef(null);
   const isTouch = useIsTouchDevice();
   const reduceMotion = useReducedMotion();
 
@@ -35,8 +38,6 @@ const Hero = () => {
 
   useEffect(() => {
     if (!tiltEnabled) {
-      // If tilt is not enabled, we might want to sync tiltX/Y with scrollParallax if desired,
-      // but simpler to just use scrollParallax directly in the view.
       return undefined;
     }
 
@@ -107,46 +108,36 @@ const Hero = () => {
     };
   }, [isTouch, reduceMotion, pullOffset]);
 
-  // When tilt (gyroscope) is active, bg circles follow the device tilt.
-  // On desktop / no-tilt: circles are static (they float via CSS animation).
-  // Scroll-driven parallax was removed — it ran on every scroll tick for
-  // a subtle effect that isn't worth the continuous computation.
-  // Note: useTransform is always called unconditionally (Rules of Hooks).
-  const circle1X = useTransform(springTiltX, (v) => v * -1.5);
-  const circle1Y = useTransform(springTiltY, (v) => v * -1.5);
-  const circle2X = useTransform(springTiltX, (v) => v * 2);
-  const circle2Y = useTransform(springTiltY, (v) => v * 2);
-
-  const handleTap = () => {
+  const handleTap = (e) => {
     if (isWaving) return;
     hapticMedium();
     setIsWaving(true);
     enableTilt();
+
+    // Trigger backpropagation shockwave from tap location
+    if (neuralCanvasRef.current) {
+      const clientX = e?.clientX ?? (e?.touches ? e.touches[0]?.clientX : undefined);
+      const clientY = e?.clientY ?? (e?.touches ? e.touches[0]?.clientY : undefined);
+      if (clientX !== undefined && clientY !== undefined) {
+        const heroEl = document.getElementById('home');
+        const rect = heroEl ? heroEl.getBoundingClientRect() : { left: 0, top: 0 };
+        neuralCanvasRef.current.triggerBackprop(clientX - rect.left, clientY - rect.top);
+      } else {
+        neuralCanvasRef.current.triggerBackprop();
+      }
+    }
+
     window.setTimeout(() => setIsWaving(false), letters.length * 40 + 600);
   };
 
   return (
     <section id="home" className="hero overflow-hidden relative">
       <div className="absolute inset-0 z-0">
-        <motion.div
-          className="hero-bg-circle"
-          style={{ 
-            top: '10%', 
-            left: '10%', 
-            background: 'var(--primary)',
-            // Only bind motion values when tilt is active; otherwise static float via CSS
-            ...(tiltEnabled && { x: circle1X, y: circle1Y }),
-          }}
-        />
-        <motion.div
-          className="hero-bg-circle"
-          style={{
-            bottom: '10%',
-            right: '10%',
-            background: 'var(--secondary)',
-            animationDelay: '2s',
-            ...(tiltEnabled && { x: circle2X, y: circle2Y }),
-          }}
+        {/* Living Synaptic Neural Net & Constellation Canvas */}
+        <NeuralCanvas
+          ref={neuralCanvasRef}
+          tiltX={tiltEnabled ? springTiltX : null}
+          tiltY={tiltEnabled ? springTiltY : null}
         />
       </div>
 
