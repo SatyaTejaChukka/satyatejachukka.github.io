@@ -38,8 +38,6 @@ const Hero = () => {
 
   useEffect(() => {
     if (!tiltEnabled) {
-      // If tilt is not enabled, we might want to sync tiltX/Y with scrollParallax if desired,
-      // but simpler to just use scrollParallax directly in the view.
       return undefined;
     }
 
@@ -110,14 +108,6 @@ const Hero = () => {
     };
   }, [isTouch, reduceMotion, pullOffset]);
 
-  // When tilt (gyroscope) is active, bg circles follow the device tilt.
-  // On desktop / no-tilt: circles are static (they float via CSS animation).
-  // Note: useTransform is always called unconditionally (Rules of Hooks).
-  const circle1X = useTransform(springTiltX, (v) => v * -1.5);
-  const circle1Y = useTransform(springTiltY, (v) => v * -1.5);
-  const circle2X = useTransform(springTiltX, (v) => v * 2);
-  const circle2Y = useTransform(springTiltY, (v) => v * 2);
-
   const handleTap = (e) => {
     if (isWaving) return;
     hapticMedium();
@@ -143,7 +133,7 @@ const Hero = () => {
   return (
     <section id="home" className="hero overflow-hidden relative">
       <div className="absolute inset-0 z-0">
-        {/* Living Synaptic Neural Net & Constellation Canvas (Replaces static circles) */}
+        {/* Living Synaptic Neural Net & Constellation Canvas */}
         <NeuralCanvas
           ref={neuralCanvasRef}
           tiltX={tiltEnabled ? springTiltX : null}

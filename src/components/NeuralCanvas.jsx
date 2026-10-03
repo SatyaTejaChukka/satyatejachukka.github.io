@@ -319,18 +319,18 @@ const NeuralCanvas = forwardRef(({ tiltX, tiltY }, ref) => {
           }
         }
 
-        // Mouse hover excitation
+        // Mouse hover excitation & gentle fluid attraction
         if (mouse.active) {
           const mdx = node.x - mouse.x;
           const mdy = node.y - mouse.y;
           const mdist = Math.sqrt(mdx * mdx + mdy * mdy);
-          const mouseRadius = 180;
+          const mouseRadius = 190;
 
           if (mdist < mouseRadius) {
             const factor = 1 - mdist / mouseRadius;
             node.activation = Math.max(node.activation, factor);
 
-            const push = (1 - mdist / mouseRadius) * 1.2;
+            const push = (1 - mdist / mouseRadius) * 0.9;
             node.x += (mdx / (mdist || 1)) * push;
             node.y += (mdy / (mdist || 1)) * push;
 
@@ -370,7 +370,7 @@ const NeuralCanvas = forwardRef(({ tiltX, tiltY }, ref) => {
         node.activation *= 0.96;
       }
 
-      // 3. Synapses (Connections)
+      // 3. Synapses with smooth bi-color gradients
       for (let i = 0; i < nodeLen; i += 1) {
         const na = nodes[i];
         for (let j = i + 1; j < nodeLen; j += 1) {
@@ -382,21 +382,27 @@ const NeuralCanvas = forwardRef(({ tiltX, tiltY }, ref) => {
           if (dist < connectionDist) {
             const distRatio = 1 - dist / connectionDist;
             const avgActivation = (na.activation + nb.activation) * 0.5;
-            const alpha = (distRatio * 0.22 + avgActivation * 0.35) * ((na.depth + nb.depth) * 0.5);
+            const alpha = (distRatio * 0.24 + avgActivation * 0.36) * ((na.depth + nb.depth) * 0.5);
 
-            const activeColor = na.isAccent || nb.isAccent ? secondaryRgb : primaryRgb;
+            const colorA = na.isAccent ? secondaryRgb : primaryRgb;
+            const colorB = nb.isAccent ? secondaryRgb : primaryRgb;
+
+            const grad = ctx.createLinearGradient(na.x, na.y, nb.x, nb.y);
+            const lineAlpha = Math.min(alpha, 0.45);
+            grad.addColorStop(0, `rgba(${colorA.r}, ${colorA.g}, ${colorA.b}, ${lineAlpha})`);
+            grad.addColorStop(1, `rgba(${colorB.r}, ${colorB.g}, ${colorB.b}, ${lineAlpha})`);
 
             ctx.beginPath();
             ctx.moveTo(na.x, na.y);
             ctx.lineTo(nb.x, nb.y);
-            ctx.strokeStyle = `rgba(${activeColor.r}, ${activeColor.g}, ${activeColor.b}, ${Math.min(alpha, 0.45)})`;
-            ctx.lineWidth = (0.7 + avgActivation * 1.2) * na.depth;
+            ctx.strokeStyle = grad;
+            ctx.lineWidth = (0.7 + avgActivation * 1.3) * na.depth;
             ctx.stroke();
           }
         }
       }
 
-      // 4. Action Potential Pulses
+      // 4. Action Potential Pulses with streaming comet tail
       for (let p = pulses.length - 1; p >= 0; p -= 1) {
         const pulse = pulses[p];
         pulse.progress += pulse.speed;
@@ -411,15 +417,31 @@ const NeuralCanvas = forwardRef(({ tiltX, tiltY }, ref) => {
           const toNode = nodes[pulse.to];
 
           if (fromNode && toNode) {
-            const px = fromNode.x + (toNode.x - fromNode.x) * pulse.progress;
-            const py = fromNode.y + (toNode.y - fromNode.y) * pulse.progress;
+            const tailProgress = Math.max(0, pulse.progress - 0.08);
+            const tailX = fromNode.x + (toNode.x - fromNode.x) * tailProgress;
+            const tailY = fromNode.y + (toNode.y - fromNode.y) * tailProgress;
+            const headX = fromNode.x + (toNode.x - fromNode.x) * pulse.progress;
+            const headY = fromNode.y + (toNode.y - fromNode.y) * pulse.progress;
             const pdepth = (fromNode.depth + toNode.depth) * 0.5;
 
+            // Comet tail
+            const pulseGrad = ctx.createLinearGradient(tailX, tailY, headX, headY);
+            pulseGrad.addColorStop(0, `rgba(${pulse.color.r}, ${pulse.color.g}, ${pulse.color.b}, 0)`);
+            pulseGrad.addColorStop(1, `rgba(${pulse.color.r}, ${pulse.color.g}, ${pulse.color.b}, 0.95)`);
+
             ctx.beginPath();
-            ctx.arc(px, py, 2.5 * pdepth, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(${pulse.color.r}, ${pulse.color.g}, ${pulse.color.b}, 0.9)`;
-            ctx.shadowColor = `rgba(${pulse.color.r}, ${pulse.color.g}, ${pulse.color.b}, 0.75)`;
-            ctx.shadowBlur = 8;
+            ctx.moveTo(tailX, tailY);
+            ctx.lineTo(headX, headY);
+            ctx.strokeStyle = pulseGrad;
+            ctx.lineWidth = 2.4 * pdepth;
+            ctx.stroke();
+
+            // Glowing spark head
+            ctx.beginPath();
+            ctx.arc(headX, headY, 2.4 * pdepth, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowColor = `rgba(${pulse.color.r}, ${pulse.color.g}, ${pulse.color.b}, 0.9)`;
+            ctx.shadowBlur = 10;
             ctx.fill();
             ctx.shadowBlur = 0;
           }

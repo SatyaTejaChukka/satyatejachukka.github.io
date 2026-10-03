@@ -859,25 +859,7 @@ ul {
   position: relative;
   z-index: 10;
   text-align: center;
-  max-width: 820px;
-  padding: 1.25rem 1rem;
-  border-radius: 24px;
-  background: radial-gradient(
-    ellipse 75% 65% at 50% 50%,
-    rgba(5, 11, 20, 0.72) 0%,
-    rgba(5, 11, 20, 0.35) 60%,
-    transparent 100%
-  );
-  backdrop-filter: blur(2px);
-}
-
-[data-theme="light"] .hero-content {
-  background: radial-gradient(
-    ellipse 75% 65% at 50% 50%,
-    rgba(255, 255, 255, 0.75) 0%,
-    rgba(255, 255, 255, 0.35) 60%,
-    transparent 100%
-  );
+  max-width: 800px;
 }
 
 .hero-title {
@@ -1069,65 +1051,84 @@ ul {
 .hero-badge-dot {
   width: 8px;
   height: 8px;
-  background: var(--primary);
+  background: #10b981;
   border-radius: 50%;
-  box-shadow: 0 0 10px var(--primary);
-  animation: pulse-dot 2s ease-in-out infinite;
+  box-shadow: 0 0 10px #10b981;
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
 }
 
+.hero-badge-dot::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 1.5px solid #10b981;
+  animation: pulse-beacon 2s cubic-bezier(0, 0.2, 0.8, 1) infinite;
+}
 
-@keyframes pulse-dot {
-  0%, 100% {
+@keyframes pulse-beacon {
+  0% {
+    transform: scale(0.6);
     opacity: 1;
-    transform: scale(1);
   }
-  50% {
-    opacity: 0.6;
-    transform: scale(1.1);
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
   }
 }
 
 .btn {
-  display: inline-block;
-  padding: 0.8rem 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.85rem 2.2rem;
   border-radius: 50px;
   font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: 0.01em;
   cursor: pointer;
-  transition: transform 0.3s ease, opacity 0.3s ease, background 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, background 0.25s ease, border-color 0.25s ease;
   border: none;
   -webkit-tap-highlight-color: transparent;
+  user-select: none;
 }
 
 .btn-primary {
-  background: var(--primary);
-  color: #000;
+  background: linear-gradient(135deg, #00f3ff 0%, #0284c7 100%);
+  color: #030712;
+  font-weight: 700;
+  box-shadow: 0 4px 20px rgba(0, 243, 255, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.45);
 }
 
 .btn-primary:hover {
-  opacity: 0.9;
   transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0, 243, 255, 0.55), 0 0 18px rgba(189, 0, 255, 0.3);
+  opacity: 1;
 }
 
 .btn-primary:active {
-  transform: scale(0.94);
-  box-shadow: 0 0 20px rgba(0, 243, 255, 0.5);
-  animation: tapFlash 0.35s ease forwards;
+  transform: scale(0.96);
+  box-shadow: 0 0 16px rgba(0, 243, 255, 0.6);
 }
 
 .btn-outline {
-  background: transparent;
-  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   color: var(--text-main);
+  backdrop-filter: blur(12px);
 }
 
 .btn-outline:hover {
   border-color: var(--primary);
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(0, 243, 255, 0.08);
+  box-shadow: 0 4px 20px rgba(0, 243, 255, 0.22);
+  transform: translateY(-2px);
 }
 
 .btn-outline:active {
-  transform: scale(0.94);
-  border-color: var(--primary);
+  transform: scale(0.96);
   box-shadow: 0 0 14px rgba(0, 243, 255, 0.25);
 }
 
