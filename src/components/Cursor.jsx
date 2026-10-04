@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 
 /**
  * High-Performance Hardware-Accelerated Custom Cursor
@@ -7,7 +8,10 @@ import React, { useEffect, useRef } from 'react';
  * - Follower ring uses requestAnimationFrame linear interpolation (lerp = 0.20)
  *   for a buttery, fluid glide with zero sluggishness or rubber-banding.
  * - Hover scaling uses pure GPU transforms (scale) instead of layout-triggering width/height.
+ * - Portaled to document.body with top-level z-index so it remains visible above all modals.
  */
+const HOVER_SELECTOR = 'a, button, [role="button"], input, textarea, select, label, .project-card, .timeline-card, .case-study-close, .case-study-nav-tab, .arch-modal-node-card, .arch-node-chip';
+
 const Cursor = () => {
   const dotRef = useRef(null);
   const ringRef = useRef(null);
@@ -78,10 +82,7 @@ const Cursor = () => {
 
     const onMouseOver = (e) => {
       const target = e.target;
-      if (
-        target &&
-        target.closest('a, button, [role="button"], input, textarea, select, label, .project-card, .timeline-card')
-      ) {
+      if (target && target.closest(HOVER_SELECTOR)) {
         if (!isHovering) {
           isHovering = true;
           ring.classList.add('cursor-ring--hover');
@@ -92,12 +93,9 @@ const Cursor = () => {
 
     const onMouseOut = (e) => {
       const target = e.target;
-      if (
-        target &&
-        target.closest('a, button, [role="button"], input, textarea, select, label, .project-card, .timeline-card')
-      ) {
+      if (target && target.closest(HOVER_SELECTOR)) {
         const related = e.relatedTarget;
-        if (!related || !related.closest('a, button, [role="button"], input, textarea, select, label, .project-card, .timeline-card')) {
+        if (!related || !related.closest(HOVER_SELECTOR)) {
           isHovering = false;
           ring.classList.remove('cursor-ring--hover');
           dot.classList.remove('cursor-dot--hover');
@@ -124,11 +122,14 @@ const Cursor = () => {
     };
   }, []);
 
-  return (
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
     <>
       <div ref={ringRef} className="cursor-ring" aria-hidden="true" />
       <div ref={dotRef} className="cursor-dot" aria-hidden="true" />
-    </>
+    </>,
+    document.body
   );
 };
 
