@@ -215,8 +215,8 @@ const Experience = () => {
   );
 
   return (
-    <section id="experience" className="section bg-[var(--bg-dark)]">
-      <div className="container">
+    <section id="experience" className="section relative bg-[var(--bg-dark)]">
+      <div className="container relative">
         <motion.h2
           className="section-title"
           initial={{ opacity: 0, y: 20 }}

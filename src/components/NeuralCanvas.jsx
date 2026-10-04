@@ -100,8 +100,8 @@ const NeuralCanvas = forwardRef(({ tiltX, tiltY }, ref) => {
     const MAX_PULSES = 60;
     let connectionDist = 180;
 
-    const createNodes = () => {
-      const isMobile = width < 768;
+    const createNodes = (targetWidth = width, targetHeight = height) => {
+      const isMobile = targetWidth < 768;
       const nodeCount = isMobile ? 38 : 72;
       connectionDist = isMobile ? 130 : 185;
 
@@ -111,8 +111,8 @@ const NeuralCanvas = forwardRef(({ tiltX, tiltY }, ref) => {
       for (let i = 0; i < nodeCount; i += 1) {
         const depth = 0.5 + Math.random() * 0.9; // 0.5 to 1.4
         nodes.push({
-          x: Math.random() * width,
-          y: Math.random() * height,
+          x: Math.random() * targetWidth,
+          y: Math.random() * targetHeight,
           vx: (Math.random() - 0.5) * 0.55 * depth,
           vy: (Math.random() - 0.5) * 0.55 * depth,
           depth,
@@ -124,23 +124,78 @@ const NeuralCanvas = forwardRef(({ tiltX, tiltY }, ref) => {
       }
     };
 
-    const resize = () => {
+    let resizeRafId = 0;
+    let resizeDebounceTimer = null;
+
+    const updateDimensions = () => {
       const heroSection = canvas.closest('#home') || canvas.parentElement;
-      const rect = heroSection ? heroSection.getBoundingClientRect() : { width: window.innerWidth, height: window.innerHeight };
-      width = Math.max(rect.width, window.innerWidth);
-      height = Math.max(rect.height, window.innerHeight);
-      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const newWidth = Math.max(heroSection?.clientWidth || 0, window.innerWidth);
+      const newHeight = Math.max(heroSection?.clientHeight || 0, window.innerHeight);
+      const newDpr = Math.min(window.devicePixelRatio || 1, 2);
 
-      canvas.width = Math.floor(width * dpr);
-      canvas.height = Math.floor(height * dpr);
-      canvas.style.width = `${width}px`;
-      canvas.style.height = `${height}px`;
+      const oldWidth = width;
+      const oldHeight = height;
 
-      createNodes();
+      width = newWidth;
+      height = newHeight;
+      dpr = newDpr;
+
+      const targetCanvasW = Math.floor(width * dpr);
+      const targetCanvasH = Math.floor(height * dpr);
+
+      if (canvas.width !== targetCanvasW) canvas.width = targetCanvasW;
+      if (canvas.height !== targetCanvasH) canvas.height = targetCanvasH;
+
+      // Scale existing nodes proportionally so they glide smoothly instead of jumping or resetting
+      if (nodes.length > 0 && oldWidth > 0 && oldHeight > 0) {
+        const scaleX = width / oldWidth;
+        const scaleY = height / oldHeight;
+        for (let i = 0; i < nodes.length; i += 1) {
+          nodes[i].x = Math.max(0, Math.min(nodes[i].x * scaleX, width));
+          nodes[i].y = Math.max(0, Math.min(nodes[i].y * scaleY, height));
+        }
+      } else if (nodes.length === 0) {
+        createNodes();
+      }
     };
 
-    resize();
-    window.addEventListener('resize', resize, { passive: true });
+    const handleResize = () => {
+      if (!resizeRafId) {
+        resizeRafId = requestAnimationFrame(() => {
+          resizeRafId = 0;
+          updateDimensions();
+        });
+      }
+
+      clearTimeout(resizeDebounceTimer);
+      resizeDebounceTimer = setTimeout(() => {
+        const isMobile = width < 768;
+        const targetNodeCount = isMobile ? 38 : 72;
+        connectionDist = isMobile ? 130 : 185;
+
+        while (nodes.length < targetNodeCount) {
+          const depth = 0.5 + Math.random() * 0.9;
+          nodes.push({
+            x: Math.random() * width,
+            y: Math.random() * height,
+            vx: (Math.random() - 0.5) * 0.55 * depth,
+            vy: (Math.random() - 0.5) * 0.55 * depth,
+            depth,
+            baseRadius: (2.0 + Math.random() * 2.2) * depth,
+            activation: 0.15,
+            isAccent: Math.random() > 0.72,
+            lastSpontaneousFire: Math.random() * 4000,
+          });
+        }
+        if (nodes.length > targetNodeCount) {
+          nodes.splice(targetNodeCount);
+        }
+      }, 150);
+    };
+
+    updateDimensions();
+    createNodes();
+    window.addEventListener('resize', handleResize, { passive: true });
 
     // Attach listeners to hero section
     const heroSection = canvas.closest('#home') || canvas.parentElement;
@@ -214,15 +269,10 @@ const NeuralCanvas = forwardRef(({ tiltX, tiltY }, ref) => {
       });
     };
 
-    let lastTime = performance.now();
-
     const render = (time) => {
       animFrameId.current = requestAnimationFrame(render);
 
       if (!isVisibleRef.current) return;
-
-      const dt = Math.min((time - lastTime) / 1000, 0.1);
-      lastTime = time;
 
       ctx.save();
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -485,10 +535,13 @@ const NeuralCanvas = forwardRef(({ tiltX, tiltY }, ref) => {
     animFrameId.current = requestAnimationFrame(render);
 
     return () => {
-      if (animFrameId.current) {
-        cancelAnimationFrame(animFrameId.current);
+      if (resizeRafId) {
+        cancelAnimationFrame(resizeRafId);
       }
-      window.removeEventListener('resize', resize);
+      if (resizeDebounceTimer) {
+        clearTimeout(resizeDebounceTimer);
+      }
+      window.removeEventListener('resize', handleResize);
       if (heroSection) {
         heroSection.removeEventListener('mousemove', handleMouseMove);
         heroSection.removeEventListener('mouseleave', handleMouseLeave);

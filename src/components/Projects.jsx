@@ -1,10 +1,12 @@
 import React, { useState, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ExternalLink, Github, X, ChevronDown } from 'lucide-react';
+import { ExternalLink, Github, X, Workflow, FileText, ChevronDown } from 'lucide-react';
 import LazyImage from './LazyImage';
 import SpotlightCard from './SpotlightCard';
 import { hapticLight } from '../utils/mobile';
 import { useIsTouchDevice, useIsMobileNav } from '../hooks/useMobile';
+import { ProjectArchitectureModalTab } from './ProjectArchitecture';
 
 
 /* ------------------ Animation Variants ------------------ */
@@ -282,13 +284,15 @@ const Projects = () => {
   const isMobile = useIsMobileNav();
   const isDesktop = !isMobile;
   const [selectedProject, setSelectedProject] = useState(null);
+  const [modalTab, setModalTab] = useState('overview');
   const [activeShot, setActiveShot] = useState(0);
   const isTouch = useIsTouchDevice();
   const swipeStartX = useRef(0);
 
-  const openCaseStudy = (project) => {
+  const openCaseStudy = (project, initialTab = 'overview') => {
     setSelectedProject(project);
     setActiveShot(0);
+    setModalTab(initialTab);
   };
 
   const closeCaseStudy = useCallback(() => {
@@ -366,11 +370,20 @@ const Projects = () => {
 
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
+
+    // Stop Lenis smooth virtual scroll while modal is active
+    if (window.__lenis) {
+      window.__lenis.stop();
+    }
+
     window.addEventListener('keydown', handleKeyDown);
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = previousOverflow;
+      document.body.style.overflow = previousOverflow === 'hidden' ? '' : previousOverflow;
+      if (window.__lenis) {
+        window.__lenis.start();
+      }
     };
   }, [selectedProject, screenshots.length, advanceShot, closeCaseStudy]);
 
@@ -481,10 +494,19 @@ const Projects = () => {
                     <button
                       type="button"
                       className="project-action-btn case-study-btn"
-                      onClick={() => openCaseStudy(project)}
+                      onClick={() => openCaseStudy(project, 'overview')}
                       title="Open Case Study"
                     >
                       Case Study
+                    </button>
+                    <button
+                      type="button"
+                      className="project-action-btn arch-toggle-btn"
+                      onClick={() => openCaseStudy(project, 'architecture')}
+                      title="View System Architecture Pipeline"
+                    >
+                      <Workflow size={14} />
+                      <span>Pipeline</span>
                     </button>
                     {project.demo && (
                       <a
@@ -592,10 +614,19 @@ const Projects = () => {
                     <button
                       type="button"
                       className="project-action-btn case-study-btn"
-                      onClick={() => openCaseStudy(project)}
+                      onClick={() => openCaseStudy(project, 'overview')}
                       title="Open Case Study"
                     >
                       Case Study
+                    </button>
+                    <button
+                      type="button"
+                      className="project-action-btn arch-toggle-btn"
+                      onClick={() => openCaseStudy(project, 'architecture')}
+                      title="View System Architecture Pipeline"
+                    >
+                      <Workflow size={14} />
+                      <span>Pipeline</span>
                     </button>
                     {project.demo && (
                       <a
@@ -629,175 +660,218 @@ const Projects = () => {
         )}
       </div>
 
-      <AnimatePresence>
-        {selectedProject && (
-          <motion.div
-            className="case-study-overlay"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={closeCaseStudy}
-          >
-            <motion.div
-              className="case-study-dialog"
-              initial={{ opacity: 0, y: 20, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 10, scale: 0.98 }}
-              transition={{ duration: 0.25 }}
-              onClick={(event) => event.stopPropagation()}
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="case-study-title"
-            >
-              <div className="case-study-header">
-                <div>
-                  <span className="case-study-kicker">{selectedProject.category}</span>
-                  <h3 className="case-study-title" id="case-study-title">
-                    {selectedProject.title}
-                  </h3>
-                </div>
-                <button
-                  type="button"
-                  className="case-study-close"
-                  onClick={closeCaseStudy}
-                  aria-label="Close case study"
+      {typeof document !== 'undefined' &&
+        createPortal(
+          <AnimatePresence>
+            {selectedProject && (
+              <motion.div
+                className="case-study-overlay"
+                data-lenis-prevent="true"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={closeCaseStudy}
+              >
+                <motion.div
+                  className="case-study-dialog"
+                  data-lenis-prevent="true"
+                  initial={{ opacity: 0, y: 20, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.98 }}
+                  transition={{ duration: 0.25 }}
+                  onClick={(event) => event.stopPropagation()}
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="case-study-title"
                 >
-                  <X size={18} />
-                </button>
-              </div>
-
-              <div className="case-study-body">
-                <div
-                  className="case-study-gallery"
-                  onTouchStart={handleGalleryTouchStart}
-                  onTouchEnd={handleGalleryTouchEnd}
-                >
-                  <div className="case-study-hero">
-                    <LazyImage
-                      src={screenshots[activeShot]}
-                      alt={`${selectedProject.title} screenshot`}
-                      className="case-study-hero-img"
-                      fallbackEmoji={selectedProject.fallbackEmoji}
-                      wrapperClassName="case-study-hero-wrapper"
-                    />
-                  </div>
-                  {screenshots.length > 1 && (
-                    <p className="case-study-swipe-hint" aria-hidden="true">
-                      Swipe to browse screenshots
-                    </p>
-                  )}
-                  {screenshots.length > 1 && (
-                    <div className="case-study-thumbs">
-                      {screenshots.map((shot, index) => (
-                        <button
-                          key={`${shot}-${index}`}
-                          type="button"
-                          className={`case-study-thumb ${index === activeShot ? 'active' : ''}`}
-                          onClick={() => setActiveShot(index)}
-                          aria-label={`View screenshot ${index + 1}`}
-                        >
-                          <img src={shot} alt="" />
-                        </button>
-                      ))}
+                  <div className="case-study-header">
+                    <div>
+                      <span className="case-study-kicker">{selectedProject.category}</span>
+                      <h3 className="case-study-title" id="case-study-title">
+                        {selectedProject.title}
+                      </h3>
                     </div>
-                  )}
-                </div>
-
-                <div className="case-study-details">
-                  <p className="case-study-summary">
-                    {caseStudy.summary || selectedProject.description}
-                  </p>
-
-                  <div className="case-study-meta">
-                    <div className="case-study-meta-item">
-                      <span className="case-study-meta-label">Category</span>
-                      <span className="case-study-meta-value">
-                        {selectedProject.category}
-                      </span>
-                    </div>
-                    {caseStudy.role && (
-                      <div className="case-study-meta-item">
-                        <span className="case-study-meta-label">Role</span>
-                        <span className="case-study-meta-value">{caseStudy.role}</span>
-                      </div>
-                    )}
+                    <button
+                      type="button"
+                      className="case-study-close"
+                      onClick={closeCaseStudy}
+                      aria-label="Close case study"
+                    >
+                      <X size={18} />
+                    </button>
                   </div>
 
-                  {caseStudy.problem && (
-                    <div className="case-study-section">
-                      <h4 className="case-study-section-title">Problem</h4>
-                      <p className="case-study-section-text">{caseStudy.problem}</p>
-                    </div>
-                  )}
-
-                  {caseStudy.solution && (
-                    <div className="case-study-section">
-                      <h4 className="case-study-section-title">Solution</h4>
-                      <p className="case-study-section-text">{caseStudy.solution}</p>
-                    </div>
-                  )}
-
-                  {caseStudy.impact && (
-                    <div className="case-study-section">
-                      <h4 className="case-study-section-title">Impact</h4>
-                      <p className="case-study-section-text">{caseStudy.impact}</p>
-                    </div>
-                  )}
-
-                  {highlightItems.length > 0 && (
-                    <div className="case-study-section">
-                      <h4 className="case-study-section-title">Highlights</h4>
-                      <div className="case-study-highlights">
-                        {highlightItems.map((item) => (
-                          <span key={item} className="case-study-highlight">
-                            {item}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="case-study-section">
-                    <h4 className="case-study-section-title">Tech Stack</h4>
-                    <div className="case-study-tech">
-                      {selectedProject.tech.map((tech) => (
-                        <span key={tech} className="project-tech-pill">
-                          {tech}
-                        </span>
-                      ))}
-                    </div>
+                  {/* Modal Tabs */}
+                  <div className="case-study-nav-tabs" role="tablist">
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={modalTab === 'overview'}
+                      className={`case-study-nav-tab ${modalTab === 'overview' ? 'active' : ''}`}
+                      onClick={() => {
+                        setModalTab('overview');
+                        hapticLight();
+                      }}
+                    >
+                      <FileText size={15} />
+                      <span>Overview & Case Study</span>
+                    </button>
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={modalTab === 'architecture'}
+                      className={`case-study-nav-tab ${modalTab === 'architecture' ? 'active' : ''}`}
+                      onClick={() => {
+                        setModalTab('architecture');
+                        hapticLight();
+                      }}
+                    >
+                      <Workflow size={15} />
+                      <span>System Architecture & Pipeline</span>
+                      <span className="case-study-tab-badge">Interactive</span>
+                    </button>
                   </div>
 
-                  <div className="case-study-links">
-                    {selectedProject.demo && (
-                      <a
-                        href={selectedProject.demo}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="project-action-btn"
+                  {modalTab === 'overview' ? (
+                    <div className="case-study-body" data-lenis-prevent="true">
+                      <div
+                        className="case-study-gallery"
+                        onTouchStart={handleGalleryTouchStart}
+                        onTouchEnd={handleGalleryTouchEnd}
                       >
-                        <ExternalLink size={16} />
-                        Live Demo
-                      </a>
-                    )}
-                    {selectedProject.github && (
-                      <a
-                        href={selectedProject.github}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="project-action-btn"
-                      >
-                        <Github size={16} />
-                        Source Code
-                      </a>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
+                        <div className="case-study-hero">
+                          <LazyImage
+                            src={screenshots[activeShot]}
+                            alt={`${selectedProject.title} screenshot`}
+                            className="case-study-hero-img"
+                            fallbackEmoji={selectedProject.fallbackEmoji}
+                            wrapperClassName="case-study-hero-wrapper"
+                          />
+                        </div>
+                        {screenshots.length > 1 && (
+                          <p className="case-study-swipe-hint" aria-hidden="true">
+                            Swipe to browse screenshots
+                          </p>
+                        )}
+                        {screenshots.length > 1 && (
+                          <div className="case-study-thumbs">
+                            {screenshots.map((shot, index) => (
+                              <button
+                                key={`${shot}-${index}`}
+                                type="button"
+                                className={`case-study-thumb ${index === activeShot ? 'active' : ''}`}
+                                onClick={() => setActiveShot(index)}
+                                aria-label={`View screenshot ${index + 1}`}
+                              >
+                                <img src={shot} alt="" />
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="case-study-details">
+                        <p className="case-study-summary">
+                          {caseStudy.summary || selectedProject.description}
+                        </p>
+
+                        <div className="case-study-meta">
+                          <div className="case-study-meta-item">
+                            <span className="case-study-meta-label">Category</span>
+                            <span className="case-study-meta-value">
+                              {selectedProject.category}
+                            </span>
+                          </div>
+                          {caseStudy.role && (
+                            <div className="case-study-meta-item">
+                              <span className="case-study-meta-label">Role</span>
+                              <span className="case-study-meta-value">{caseStudy.role}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {caseStudy.problem && (
+                          <div className="case-study-section">
+                            <h4 className="case-study-section-title">Problem</h4>
+                            <p className="case-study-section-text">{caseStudy.problem}</p>
+                          </div>
+                        )}
+
+                        {caseStudy.solution && (
+                          <div className="case-study-section">
+                            <h4 className="case-study-section-title">Solution</h4>
+                            <p className="case-study-section-text">{caseStudy.solution}</p>
+                          </div>
+                        )}
+
+                        {caseStudy.impact && (
+                          <div className="case-study-section">
+                            <h4 className="case-study-section-title">Impact</h4>
+                            <p className="case-study-section-text">{caseStudy.impact}</p>
+                          </div>
+                        )}
+
+                        {highlightItems.length > 0 && (
+                          <div className="case-study-section">
+                            <h4 className="case-study-section-title">Highlights</h4>
+                            <div className="case-study-highlights">
+                              {highlightItems.map((item) => (
+                                <span key={item} className="case-study-highlight">
+                                  {item}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="case-study-section">
+                          <h4 className="case-study-section-title">Tech Stack</h4>
+                          <div className="case-study-tech">
+                            {selectedProject.tech.map((tech) => (
+                              <span key={tech} className="project-tech-pill">
+                                {tech}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="case-study-links">
+                          {selectedProject.demo && (
+                            <a
+                              href={selectedProject.demo}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="project-action-btn"
+                            >
+                              <ExternalLink size={16} />
+                              Live Demo
+                            </a>
+                          )}
+                          {selectedProject.github && (
+                            <a
+                              href={selectedProject.github}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="project-action-btn"
+                            >
+                              <Github size={16} />
+                              Source Code
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="case-study-body case-study-body--arch" data-lenis-prevent="true">
+                      <ProjectArchitectureModalTab project={selectedProject} />
+                    </div>
+                  )}
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>,
+          document.body
         )}
-      </AnimatePresence>
 
     </section>
   );

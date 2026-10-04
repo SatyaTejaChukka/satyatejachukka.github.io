@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { motion, useReducedMotion, useTransform, useMotionValue, useSpring } from 'framer-motion';
+import { motion, useReducedMotion, useMotionValue, useSpring } from 'framer-motion';
 import { ArrowDown } from 'lucide-react';
 import { useIsTouchDevice } from '../hooks/useMobile';
 import {
@@ -150,59 +150,78 @@ const Hero = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
         >
-          <h2 className="text-xl hero-greeting mb-4">Hello, I&apos;m</h2>
+          <h2 className="hero-greeting">Hello, I&apos;m</h2>
           <h1
             className="hero-title"
             onClick={handleTap}
             style={{ cursor: 'pointer', WebkitTapHighlightColor: 'transparent' }}
             aria-label="Interactive name: tap for animation"
           >
-            {letters.map((letter, index) => (
-              <motion.span
-                key={index}
-                animate={
-                  isWaving
-                    ? {
-                        scale: [1, 1.25, 1],
-                        textShadow: [
-                          '0px 0px 0px transparent',
-                          '0px 0px 12px rgb(0, 243, 255)',
-                          '0px 0px 0px transparent',
-                        ],
-                        color: ['var(--text-main)', '#fff', 'var(--text-main)'],
-                      }
-                    : {}
-                }
-                transition={
-                  isWaving
-                    ? {
-                        duration: 0.5,
-                        delay: index * 0.035,
-                        ease: 'easeInOut',
-                      }
-                    : { type: 'spring', stiffness: 300 }
-                }
-                whileHover={
-                  !isTouch
-                    ? {
-                        scale: 1.2,
-                        textShadow: '0px 0px 8px rgb(0, 243, 255)',
-                      }
-                    : undefined
-                }
-                whileTap={
-                  isTouch
-                    ? {
-                        scale: 1.15,
-                        textShadow: '0px 0px 10px rgb(0, 243, 255)',
-                      }
-                    : undefined
-                }
-                style={{ display: 'inline-block' }}
-                className={`hero-title-letter ${letter === ' ' ? 'mr-4' : ''}`}
+            {[
+              { word: 'Satya', startIndex: 0 },
+              { word: 'Teja', startIndex: 6 },
+              { word: 'Chukka', startIndex: 11 },
+            ].map((wordObj, wIdx, arr) => (
+              <span
+                key={wordObj.word}
+                className="hero-title-word"
+                style={{
+                  display: 'inline-block',
+                  whiteSpace: 'nowrap',
+                  marginRight: wIdx < arr.length - 1 ? '0.32em' : '0',
+                }}
               >
-                {letter === ' ' ? '\u00A0' : letter}
-              </motion.span>
+                {wordObj.word.split('').map((letter, lIdx) => {
+                  const globalIndex = wordObj.startIndex + lIdx;
+                  return (
+                    <motion.span
+                      key={globalIndex}
+                      animate={
+                        isWaving
+                          ? {
+                              scale: [1, 1.25, 1],
+                              textShadow: [
+                                '0px 0px 0px transparent',
+                                '0px 0px 12px rgb(0, 243, 255)',
+                                '0px 0px 0px transparent',
+                              ],
+                              color: ['var(--text-main)', '#fff', 'var(--text-main)'],
+                            }
+                          : {}
+                      }
+                      transition={
+                        isWaving
+                          ? {
+                              duration: 0.5,
+                              delay: globalIndex * 0.035,
+                              ease: 'easeInOut',
+                            }
+                          : { type: 'spring', stiffness: 300 }
+                      }
+                      whileHover={
+                        !isTouch
+                          ? {
+                              scale: 1.2,
+                              textShadow: '0px 0px 8px rgb(0, 243, 255)',
+                            }
+                          : undefined
+                      }
+                      whileTap={
+                        isTouch
+                          ? {
+                              scale: 1.15,
+                              textShadow: '0px 0px 10px rgb(0, 243, 255)',
+                            }
+                          : undefined
+                      }
+                      style={{ display: 'inline-block' }}
+                      className="hero-title-letter"
+                    >
+                      {letter}
+                    </motion.span>
+                  );
+                })}
+              </span>
             ))}
           </h1>
 
