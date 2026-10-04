@@ -353,7 +353,8 @@ export const ProjectArchitectureModalTab = ({ project }) => {
           )}
         </div>
         <div className="arch-scroll-hint" aria-hidden="true">
-          <span>💡 Mouse wheel or drag to scroll horizontally · Click any node to inspect</span>
+          <span className="arch-scroll-hint-desktop">💡 Mouse wheel or drag to scroll horizontally · Click any node to inspect</span>
+          <span className="arch-scroll-hint-mobile">👆 Swipe horizontally to explore pipeline · Tap node to inspect</span>
         </div>
       </div>
 

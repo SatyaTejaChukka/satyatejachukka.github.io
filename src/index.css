@@ -2585,8 +2585,8 @@ ul {
   }
 
   .case-study-nav-tabs {
-    padding: 0.5rem 0.75rem;
-    gap: 0.4rem;
+    padding: 0.5rem 0.65rem;
+    gap: 0.35rem;
     scrollbar-width: none;
   }
 
@@ -2595,8 +2595,23 @@ ul {
   }
 
   .case-study-nav-tab {
-    padding: 0.45rem 0.8rem;
+    flex: 1;
+    justify-content: center;
+    padding: 0.45rem 0.55rem;
     font-size: 0.76rem;
+  }
+
+  .case-study-tab-text-full {
+    display: none;
+  }
+
+  .case-study-tab-text-short {
+    display: inline;
+  }
+
+  .case-study-tab-badge {
+    font-size: 0.62rem;
+    padding: 0.12rem 0.38rem;
   }
 
   .case-study-body {
@@ -2604,8 +2619,24 @@ ul {
     gap: 1.25rem;
   }
 
+  .case-study-body::-webkit-scrollbar {
+    width: 4px;
+  }
+
   .case-study-body.case-study-body--arch {
     padding: 0.85rem 0.85rem 2.25rem;
+  }
+
+  .arch-nav-arrow {
+    display: none !important;
+  }
+
+  .arch-scroll-hint-desktop {
+    display: none;
+  }
+
+  .arch-scroll-hint-mobile {
+    display: inline;
   }
 
   .arch-modal-hero {
@@ -2629,9 +2660,15 @@ ul {
   }
 
   .arch-modal-node-card {
-    width: 142px;
-    min-width: 142px;
-    padding: 0.65rem 0.75rem;
+    flex: 0 0 136px;
+    width: 136px;
+    min-width: 136px;
+    padding: 0.6rem 0.65rem;
+  }
+
+  .arch-modal-connector {
+    width: 24px;
+    min-width: 24px;
   }
 
   .arch-inspector-card {
@@ -4364,6 +4401,14 @@ html[data-theme="light"] .timeline-line-gradient,
   white-space: nowrap;
 }
 
+.case-study-tab-text-short {
+  display: none;
+}
+
+.case-study-tab-text-full {
+  display: inline;
+}
+
 .case-study-nav-tab:hover {
   color: var(--text-main);
   background: rgba(255, 255, 255, 0.04);
@@ -4546,6 +4591,14 @@ html[data-theme="light"] .timeline-line-gradient,
   color: var(--text-muted);
   opacity: 0.8;
   letter-spacing: 0.02em;
+}
+
+.arch-scroll-hint-mobile {
+  display: none;
+}
+
+.arch-scroll-hint-desktop {
+  display: inline;
 }
 
 .arch-modal-pipeline {

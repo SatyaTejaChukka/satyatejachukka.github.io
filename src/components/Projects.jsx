@@ -714,7 +714,8 @@ const Projects = () => {
                       }}
                     >
                       <FileText size={15} />
-                      <span>Overview & Case Study</span>
+                      <span className="case-study-tab-text-full">Overview & Case Study</span>
+                      <span className="case-study-tab-text-short">Overview</span>
                     </button>
                     <button
                       type="button"
@@ -727,7 +728,8 @@ const Projects = () => {
                       }}
                     >
                       <Workflow size={15} />
-                      <span>System Architecture & Pipeline</span>
+                      <span className="case-study-tab-text-full">System Architecture & Pipeline</span>
+                      <span className="case-study-tab-text-short">Architecture</span>
                       <span className="case-study-tab-badge">Interactive</span>
                     </button>
                   </div>
